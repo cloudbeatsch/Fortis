@@ -20,7 +20,7 @@ Param(
 $site = Get-AzureRmWebApp -Name $WebsiteName
 
 # check if we already have such a webjob
-$existingJob = Get-AzureWebsiteJob -Name $site.Name -JobType $JobType
+$existingJob = Get-AzureWebsiteJob -Name $site.Name -JobName $WebJobName -JobType $JobType
 if ($existingJob -ne $null)
 {
 	Write-Host "AzureWebJob $WebJobName in Website $WebsiteName already exists and will be deleted"
