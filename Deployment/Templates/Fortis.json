@@ -1,0 +1,666 @@
+﻿{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "hostingPlanName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "skuName": {
+      "type": "string",
+      "defaultValue": "F1",
+      "allowedValues": [
+        "F1",
+        "D1",
+        "B1",
+        "B2",
+        "B3",
+        "S1",
+        "S2",
+        "S3",
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "metadata": {
+        "description": "Describes plan's pricing tier and instance size. Check details at https://azure.microsoft.com/en-us/pricing/details/app-service/"
+      }
+    },
+    "skuCapacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1,
+      "metadata": {
+        "description": "Describes plan's instance count"
+      }
+    },
+    "storageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Standard_ZRS",
+        "Standard_GRS",
+        "Standard_RAGRS",
+        "Premium_LRS"
+      ]
+    },
+    "deploymentPostFix": {
+      "type": "string",
+      "minLength": 1
+    },
+    "twitterConsumerKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "twitterConsumerSecret": {
+      "type": "string",
+      "minLength": 1
+    },
+    "twitterAccessTokenKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "twitterAccessTokenSecret": {
+      "type": "string",
+      "minLength": 1
+    },
+    "eventHubName1": {
+      "type": "string"
+    },
+    "eventHubSendPrimaryKey1": {
+      "type": "string"
+    },
+    "eventHubSendSecondaryKey1": {
+      "type": "string"
+    },
+    "eventHubListenPrimaryKey1": {
+      "type": "string"
+    },
+    "eventHubListenSecondaryKey1": {
+      "type": "string"
+    },
+    "eventHubName2": {
+      "type": "string"
+    },
+    "eventHubSendPrimaryKey2": {
+      "type": "string"
+    },
+    "eventHubSendSecondaryKey2": {
+      "type": "string"
+    },
+    "eventHubListenPrimaryKey2": {
+      "type": "string"
+    },
+    "eventHubListenSecondaryKey2": {
+      "type": "string"
+    },
+    "boundingBox": {
+      "type": "string"
+    },
+    "_artifactsLocationSasToken": {
+      "type": "string",
+      "metadata": {
+        "description": ""
+      }
+    },
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": ""
+      }
+    }
+  },
+  "variables": {
+    "uniqueId": "[parameters('deploymentPostFix')]",
+    "webSiteName": "[concat('FortisWebJobs-', variables('uniqueId'))]",
+    "dataStorageAccountName": "[toLower(concat('fortisdata', variables('uniqueId')))]",
+    "clusterStorageAccountName": "[toLower(concat('fortiscluster', variables('uniqueId')))]",
+    "location": "[resourceGroup().location]",
+    "sbListenOnlyKeyName": "ListenOnlyKey",
+    "ehVersion": "2014-09-01",
+    "defaultSASKeyName": "RootManageSharedAccessKey",
+    "eventHubNamespace1": "[concat('FortisEHKeywords', parameters('deploymentPostFix'))]",
+    "authRuleResourceId1": "[resourceId('Microsoft.Eventhub/namespaces/authorizationRules', variables('eventHubNamespace1'), variables('defaultSASKeyName'))]",
+    "sendAuthRuleResourceId1": "[resourceId('Microsoft.Eventhub/namespaces/authorizationRules', variables('eventHubNamespace1'), 'SendOnlyKey')]",
+    "listenAuthRuleResourceId1": "[resourceId('Microsoft.Eventhub/namespaces/authorizationRules', variables('eventHubNamespace1'), 'ListenOnlyKey')]",
+    "eventHubNamespace2": "[concat('FortisEHGroups', parameters('deploymentPostFix'))]",
+    "authRuleResourceId2": "[resourceId('Microsoft.Eventhub/namespaces/authorizationRules', variables('eventHubNamespace2'), variables('defaultSASKeyName'))]",
+    "sendAuthRuleResourceId2": "[resourceId('Microsoft.Eventhub/namespaces/authorizationRules', variables('eventHubNamespace2'), 'SendOnlyKey')]",
+    "listenAuthRuleResourceId2": "[resourceId('Microsoft.Eventhub/namespaces/authorizationRules', variables('eventHubNamespace2'), 'ListenOnlyKey')]",
+    "keywordsSAJobName": "[concat('FortisSAKeywords', parameters('deploymentPostFix'))]",
+    "groupsSAJobName": "[concat('FortisSAGroups', parameters('deploymentPostFix'))]",
+    "refDataContainer": "refdata"
+  },
+
+  "resources": [
+    {
+      "apiVersion": "2015-08-01",
+      "name": "[parameters('hostingPlanName')]",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "HostingPlan"
+      },
+      "sku": {
+        "name": "[parameters('skuName')]",
+        "capacity": "[parameters('skuCapacity')]"
+      },
+      "properties": {
+        "name": "[parameters('hostingPlanName')]"
+      }
+    },
+    {
+      "apiVersion": "2015-08-01",
+      "name": "[variables('webSiteName')]",
+      "type": "Microsoft.Web/sites",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "[concat('hidden-related:', resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]": "Resource",
+        "displayName": "Website"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]"
+      ],
+      "properties": {
+        "name": "[variables('webSiteName')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]"
+      },
+      "resources": [
+        {
+          "apiVersion": "2015-08-01",
+          "name": "web",
+          "type": "config",
+          "dependsOn": [
+            "[concat('Microsoft.Web/sites/', variables('webSiteName'))]"
+          ],
+          "properties": {
+            "phpVersion": "5.5",
+            "netFrameworkVersion": "v4.6",
+            "use32BitWorkerProcess": false, /* 64-bit platform */
+            "webSocketsEnabled": true,
+            "alwaysOn": true,
+            "requestTracingEnabled": true, /* Failed request tracing, aka 'freb' */
+            "httpLoggingEnabled": true, /* IIS logs (aka Web server logging) */
+            "logsDirectorySizeLimit": 40, /* 40 MB limit for IIS logs */
+            "detailedErrorLoggingEnabled": true, /* Detailed error messages  */
+            "remoteDebuggingEnabled": false,
+            "remoteDebuggingVersion": "VS2015",
+
+
+            "virtualApplications": [
+              {
+                "virtualPath": "/",
+                "physicalPath": "site\\wwwroot"
+              },
+              {
+                "virtualPath": "/MyApp",
+                "physicalPath": "site\\wwwroot"
+              }
+            ],
+
+
+            "defaultDocuments": [
+              "index.html",
+              "hostingstart.html"
+            ]
+          }
+        },
+        {
+          "apiVersion": "2015-08-01",
+          "name": "connectionstrings",
+          "type": "config",
+          "dependsOn": [
+            "[concat('Microsoft.Web/sites/', variables('webSiteName'))]",
+            "[concat('Microsoft.Storage/storageAccounts/', variables('dataStorageAccountName'))]"
+          ],
+          "properties": {
+            "AzureWebJobsDashboard": {
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('dataStorageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value)]",
+              "type": "custom"
+            },
+            "AzureWebJobsStorage": {
+              "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('dataStorageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value)]",
+              "type": "custom"
+            }
+          }
+        },
+        {
+          "name": "appsettings",
+          "type": "config",
+          "apiVersion": "2015-08-01",
+          "dependsOn": [
+            "[concat('Microsoft.Web/sites/', variables('webSiteName'))]",
+            "[concat('Microsoft.Storage/storageAccounts/', variables('dataStorageAccountName'))]",
+            "[variables('sendAuthRuleResourceId1')]",
+            "[variables('sendAuthRuleResourceId2')]"
+          ],
+          "tags": {
+            "displayName": "ApplicationSettings"
+          },
+          "properties": {
+            "WEBSITE_NODE_DEFAULT_VERSION": "4.2.3",
+            "STORAGE_ACCOUNT": "[variables('dataStorageAccountName')]",
+            "STORAGE_CONNECTION_STRING": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('dataStorageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value)]",
+            "PCT_GEO_TWIT_CONNECTION_STR": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('dataStorageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value)]",
+            "STORAGE_KEY": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]",
+            "NLP_INPUT_QUEUE_NAME": "nlpinput",
+            "TWEET_USERGRAPH_QUEUE_NAME": "usergraphinput",
+            "TWEET_PIPELINE_QUEUE_NAME": "pipelineinput",
+            "TWEET_TABLE_NAME": "tweets",
+            "KEYWORD_INFERENCE_INPUT_QUEUE_NAME": "pipelineinput",
+            "TWITTER_CONSUMER_KEY": "[parameters('TwitterConsumerKey')]",
+            "TWITTER_CONSUMER_SECRET": "[parameters('TwitterConsumerSecret')]",
+            "TWITTER_ACCESS_TOKEN_KEY": "[parameters('TwitterAccessTokenKey')]",
+            "TWITTER_ACCESS_TOKEN_SECRET": "[parameters('TwitterAccessTokenSecret')]",
+            "REFERENCE_DATA_BLOB_CONTAINER": "[variables('refDataContainer')]",
+            "KEYWORD_EVENTHUB_CONNECTION_STRING": "[listkeys(variables('sendAuthRuleResourceId1'), variables('ehVersion')).primaryConnectionString]",
+            "KEYWORD_EVENTHUB_NAME": "[parameters('eventHubName1')]",
+            "SENTENCE_EVENTHUB_NAME": "[parameters('eventHubName2')]",
+            "SENTENCE_EVENTHUB_CONNECTION_STRING": "[listkeys(variables('sendAuthRuleResourceId2'), variables('ehVersion')).primaryConnectionString]",
+            "USER_TABLE": "users",
+            "BOUNDING_BOX": "[parameters('boundingBox')]"
+          }
+        }
+      ]
+    },
+    {
+      "apiVersion": "2014-04-01",
+      "name": "[concat(parameters('hostingPlanName'), '-', resourceGroup().name)]",
+      "type": "Microsoft.Insights/autoscalesettings",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "[concat('hidden-link:', resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]": "Resource",
+        "displayName": "AutoScaleSettings"
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]"
+      ],
+      "properties": {
+        "profiles": [
+          {
+            "name": "Default",
+            "capacity": {
+              "minimum": 1,
+              "maximum": 2,
+              "default": 1
+            },
+            "rules": [
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[concat(resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT10M",
+                  "timeAggregation": "Average",
+                  "operator": "GreaterThan",
+                  "threshold": 80.0
+                },
+                "scaleAction": {
+                  "direction": "Increase",
+                  "type": "ChangeCount",
+                  "value": 1,
+                  "cooldown": "PT10M"
+                }
+              },
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[concat(resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT1H",
+                  "timeAggregation": "Average",
+                  "operator": "LessThan",
+                  "threshold": 60.0
+                },
+                "scaleAction": {
+                  "direction": "Decrease",
+                  "type": "ChangeCount",
+                  "value": 1,
+                  "cooldown": "PT1H"
+                }
+              }
+            ]
+          }
+        ],
+        "enabled": false,
+        "name": "[concat(parameters('hostingPlanName'), '-', resourceGroup().name)]",
+        "targetResourceUri": "[concat(resourceGroup().id, '/providers/Microsoft.Web/serverfarms/', parameters('hostingPlanName'))]"
+      }
+    },
+    {
+      "name": "[variables('dataStorageAccountName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "dataStorageAccountName"
+      },
+      "properties": {
+        "accountType": "[parameters('storageAccountType')]"
+
+      }
+    },
+    {
+      "name": "[variables('clusterStorageAccountName')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2015-06-15",
+      "dependsOn": [ ],
+      "tags": {
+        "displayName": "clusterStorageAccountName"
+      },
+      "properties": {
+        "accountType": "[parameters('storageAccountType')]"
+
+      }
+    },
+    {
+      "apiVersion": "[variables('ehVersion')]",
+      "name": "[variables('eventHubNamespace1')]",
+      "type": "Microsoft.EventHub/namespaces",
+      "location": "[variables('location')]",
+      "resources": [
+        {
+          "apiVersion": "[variables('ehVersion')]",
+          "name": "[parameters('eventHubName1')]",
+          "type": "eventHubs",
+          "dependsOn": [
+            "[concat('Microsoft.EventHub/namespaces/', variables('eventHubNamespace1'))]"
+          ],
+          "properties": {
+            "path": "[parameters('eventHubName1')]"
+          }
+        },
+        {
+          "apiVersion": "[variables('ehVersion')]",
+          "name": "[concat(variables('eventHubNamespace1'),'/SendOnlyKey')]",
+          "type": "Microsoft.EventHub/namespaces/authorizationRules",
+          "dependsOn": [
+            "[concat('Microsoft.EventHub/namespaces/', variables('eventHubNamespace1'))]"
+          ],
+          "location": "[variables('location')]",
+          "properties": {
+            "KeyName": "SendOnlyKey",
+            "ClaimType": "SendSharedAccessKey",
+            "ClaimValue": "None",
+            "PrimaryKey": "[parameters('eventHubSendPrimaryKey1')]",
+            "SecondaryKey": "[parameters('eventHubSendSecondaryKey1')]",
+            "Rights": [ "Send" ],
+            "Revision": -1
+          }
+        },
+        {
+          "apiVersion": "[variables('ehVersion')]",
+          "name": "[concat(variables('eventHubNamespace1'),'/',variables('sbListenOnlyKeyName'))]",
+          "type": "Microsoft.EventHub/namespaces/authorizationRules",
+          "dependsOn": [
+            "[concat('Microsoft.EventHub/namespaces/', variables('eventHubNamespace1'))]"
+          ],
+          "location": "[variables('location')]",
+          "properties": {
+            "KeyName": "ListenOnlyKey",
+            "ClaimType": "ReceiveSharedAccessKey",
+            "ClaimValue": "None",
+            "PrimaryKey": "[parameters('eventHubListenPrimaryKey1')]",
+            "SecondaryKey": "[parameters('eventHubListenSecondaryKey1')]",
+            "Rights": [ "Listen" ],
+            "Revision": -1
+          }
+        }
+      ]
+    },
+
+    {
+      "apiVersion": "[variables('ehVersion')]",
+      "name": "[variables('eventHubNamespace2')]",
+      "type": "Microsoft.EventHub/namespaces",
+      "location": "[variables('location')]",
+      "resources": [
+        {
+          "apiVersion": "[variables('ehVersion')]",
+          "name": "[parameters('eventHubName2')]",
+          "type": "eventHubs",
+          "dependsOn": [
+            "[concat('Microsoft.EventHub/namespaces/', variables('eventHubNamespace2'))]"
+          ],
+          "properties": {
+            "path": "[parameters('eventHubName2')]"
+          }
+        },
+        {
+          "apiVersion": "[variables('ehVersion')]",
+          "name": "[concat(variables('eventHubNamespace2'),'/SendOnlyKey')]",
+          "type": "Microsoft.EventHub/namespaces/authorizationRules",
+          "dependsOn": [
+            "[concat('Microsoft.EventHub/namespaces/', variables('eventHubNamespace2'))]"
+          ],
+          "location": "[variables('location')]",
+          "properties": {
+            "KeyName": "SendOnlyKey",
+            "ClaimType": "SendSharedAccessKey",
+            "ClaimValue": "None",
+            "PrimaryKey": "[parameters('eventHubSendPrimaryKey2')]",
+            "SecondaryKey": "[parameters('eventHubSendSecondaryKey2')]",
+            "Rights": [ "Send" ],
+            "Revision": -1
+          }
+        },
+        {
+          "apiVersion": "[variables('ehVersion')]",
+          "name": "[concat(variables('eventHubNamespace2'),'/',variables('sbListenOnlyKeyName'))]",
+          "type": "Microsoft.EventHub/namespaces/authorizationRules",
+          "dependsOn": [
+            "[concat('Microsoft.EventHub/namespaces/', variables('eventHubNamespace2'))]"
+          ],
+          "location": "[variables('location')]",
+          "properties": {
+            "KeyName": "ListenOnlyKey",
+            "ClaimType": "ReceiveSharedAccessKey",
+            "ClaimValue": "None",
+            "PrimaryKey": "[parameters('eventHubListenPrimaryKey2')]",
+            "SecondaryKey": "[parameters('eventHubListenSecondaryKey2')]",
+            "Rights": [ "Listen" ],
+            "Revision": -1
+          }
+        }
+      ]
+    },
+    {
+      "name": "[variables('keywordsSAJobName')]",
+      "type": "Microsoft.StreamAnalytics/streamingjobs",
+      "location": "[variables('Location')]",
+      "apiVersion": "2015-09-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName'))]",
+        "[variables('listenAuthRuleResourceId1')]"
+      ],
+      "properties": {
+        "sku": {
+          "name": "Standard"
+        },
+        "eventsOutOfOrderPolicy": "drop",
+        "eventsOutOfOrderMaxDelayInSeconds": 10,
+        "inputs": [
+          {
+            "name": "keywordsIngest",
+            "properties": {
+              "type": "stream",
+              "serialization": {
+                "type": "JSON",
+                "properties": {
+                  "encoding": "UTF8"
+                }
+              },
+              "datasource": {
+                "type": "Microsoft.ServiceBus/EventHub",
+                "properties": {
+                  "serviceBusNamespace": "[variables('eventHubNamespace1')]",
+                  "sharedAccessPolicyName": "[variables('sbListenOnlyKeyName')]",
+                  "sharedAccessPolicyKey": "[parameters('eventHubListenPrimaryKey1')]",
+                  "eventHubName": "[parameters('eventHubName1')]"
+                }
+              }
+            }
+          }
+        ],
+        "transformation": {
+          "name": "ProcessKeywordsData",
+          "properties": {
+            "streamingUnits": 1,
+            "query": "select * into keywordsOutput from keywordsIngest"
+          }
+        },
+        "outputs": [
+          {
+            "name": "keywordsOutput",
+            "properties": {
+              "type": "reference",
+              "serialization": {
+                "type": "JSON",
+                "properties": {
+                  "encoding": "UTF8"
+                }
+              },
+              "datasource": {
+                "type": "Microsoft.Storage/Blob",
+                "properties": {
+                  "storageAccounts": [
+                    {
+                      "accountName": "[variables('dataStorageAccountName')]",
+                      "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+                    }
+                  ],
+                  "pathPattern": "{date}/{time}",
+                  "dateFormat": "yyyy/MM/dd",
+                  "timeFormat": "HH",
+                  "container": "keywords",
+                  "blobPathPrefix": ""
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "[variables('groupsSAJobName')]",
+      "type": "Microsoft.StreamAnalytics/streamingjobs",
+      "location": "[variables('Location')]",
+      "apiVersion": "2015-09-01",
+      "dependsOn": [
+        "[resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName'))]",
+        "[variables('listenAuthRuleResourceId2')]"
+      ],
+      "properties": {
+        "sku": {
+          "name": "Standard"
+        },
+        "eventsOutOfOrderPolicy": "drop",
+        "eventsOutOfOrderMaxDelayInSeconds": 10,
+        "inputs": [
+          {
+            "name": "groupsIngest",
+            "properties": {
+              "type": "stream",
+              "serialization": {
+                "type": "JSON",
+                "properties": {
+                  "encoding": "UTF8"
+                }
+              },
+              "datasource": {
+                "type": "Microsoft.ServiceBus/EventHub",
+                "properties": {
+                  "serviceBusNamespace": "[variables('eventHubNamespace2')]",
+                  "sharedAccessPolicyName": "[variables('sbListenOnlyKeyName')]",
+                  "sharedAccessPolicyKey": "[parameters('eventHubListenPrimaryKey2')]",
+                  "eventHubName": "[parameters('eventHubName2')]"
+                }
+              }
+            }
+          }
+        ],
+        "transformation": {
+          "name": "ProcessGroupsData",
+          "properties": {
+            "streamingUnits": 1,
+            "query": "select * into groupsOutput from groupsIngest"
+          }
+        },
+        "outputs": [
+          {
+            "name": "groupsOutput",
+            "properties": {
+              "type": "reference",
+              "serialization": {
+                "type": "JSON",
+                "properties": {
+                  "encoding": "UTF8"
+                }
+              },
+              "datasource": {
+                "type": "Microsoft.Storage/Blob",
+                "properties": {
+                  "storageAccounts": [
+                    {
+                      "accountName": "[variables('dataStorageAccountName')]",
+                      "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+                    }
+                  ],
+                  "pathPattern": "{date}/{time}",
+                  "dateFormat": "yyyy/MM/dd",
+                  "timeFormat": "HH",
+                  "container": "groups",
+                  "blobPathPrefix": ""
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "outputs": {
+    "dataStorageAccountName": {
+      "type": "string",
+      "value": "[variables('dataStorageAccountName')]"
+    },
+    "dataStorageAccountKey": {
+      "type": "string",
+      "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+    },
+    "dataStorageAccountConnectionString": {
+      "type": "string",
+      "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('dataStorageAccountName'), ';AccountKey=', listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value)]"
+    },
+    "refDataContainer": {
+      "type": "string",
+      "value": "[variables('refDataContainer')]"
+    },
+    "clusterStorageAccountName": {
+      "type": "string",
+      "value": "[variables('clusterStorageAccountName')]"
+    },
+    "clusterStorageAccountKey": {
+      "type": "string",
+      "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('clusterStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
+    },
+    "webJobWebSiteName": {
+      "type": "string",
+      "value": "[variables('webSiteName')]"
+    },
+    "keywordsSAJobName": {
+      "type": "string",
+      "value": "[variables('keywordsSAJobName')]"
+    },
+    "groupsSAJobName": {
+      "type": "string",
+      "value": "[variables('groupsSAJobName')]"
+    }
+  }
+}

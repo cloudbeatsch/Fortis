@@ -1,0 +1,206 @@
+{
+"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+"contentVersion": "1.0.0.0",
+  "parameters": {
+    "clusterName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the HDInsight cluster to create."
+      }
+    },
+    "clusterLoginUserName": {
+      "type": "string",
+      "defaultValue": "admin",
+      "metadata": {
+        "description": "These credentials can be used to submit jobs to the cluster and to log into cluster dashboards."
+      }
+    },
+    "clusterLoginPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password for the cluster login."
+      }
+    },
+    "sshUserName": {
+      "type": "string",
+      "defaultValue": "sshuser",
+      "metadata": {
+        "description": "These credentials can be used to remotely access the cluster and the edge node virtual machine."
+      }
+    },
+    "sshPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password for the ssh user."
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "East US",
+      "allowedValues": [
+        "East US",
+        "East US 2",
+        "North Central US",
+        "South Central US",
+        "West US",
+        "North Europe",
+        "West Europe",
+        "East Asia",
+        "Southeast Asia",
+        "Japan East",
+        "Japan West",
+        "Australia East",
+        "Australia Southeast"
+      ],
+      "metadata": {
+        "description": "The location where all azure resources will be deployed."
+      }
+    },
+    "clusterType": {
+      "type": "string",
+      "defaultValue": "hadoop",
+      "allowedValues": [
+        "hadoop",
+        "hbase",
+        "storm",
+        "spark"
+      ],
+      "metadata": {
+        "description": "The type of the HDInsight cluster to create."
+      }
+    },
+    "clusterVersion": {
+      "type": "string",
+      "defaultValue": "3.4",
+      "metadata": {
+        "description": "The version of the HDInsight cluster to create."
+      }
+
+    },
+    "clusterWorkerNodeCount": {
+      "type": "int",
+      "defaultValue": 2,
+      "metadata": {
+        "description": "The number of nodes in the HDInsight cluster."
+      }
+    },
+    "clusterStorageAccountName": {
+      "type": "string",
+      "metadata": {
+        "description": "The storage account name for the cluster data."
+      }
+    },
+    "clusterStorageAccountKey": {
+      "type": "string",
+      "metadata": {
+        "description": "The storage account key for the cluster data."
+      }
+    },
+    "clusterContainer": {
+      "type": "string",
+      "metadata": {
+        "description": "The container that contains the source data."
+      }
+      },
+      "dataStorageAccountName": {
+        "type": "string",
+        "metadata": {
+          "description": "The storage account name for the source data."
+        }
+      },
+      "dataStorageAccountKey": {
+        "type": "string",
+        "metadata": {
+          "description": "The storage account key for the source data."
+        }
+      },
+      "dataContainer": {
+        "type": "string",
+        "metadata": {
+          "description": "The container that contains the source data."
+        }
+      }
+    },
+    "variables": {
+      "defaultApiVersion": "2015-05-01-preview",
+      "clusterApiVersion": "2015-03-01-preview"
+    },
+    "resources": [
+      {
+        "name": "[parameters('clusterName')]",
+        "type": "Microsoft.HDInsight/clusters",
+        "location": "[parameters('location')]",
+        "apiVersion": "[variables('clusterApiVersion')]",
+        "dependsOn": [
+        ],
+        "tags": { },
+        "properties": {
+          "clusterVersion": "[parameters('clusterVersion')]",
+          "osType": "Linux",
+          "clusterDefinition": {
+            "kind": "[parameters('clusterType')]",
+            "configurations": {
+              "gateway": {
+                "restAuthCredential.isEnabled": true,
+                "restAuthCredential.username": "[parameters('clusterLoginUserName')]",
+                "restAuthCredential.password": "[parameters('clusterLoginPassword')]"
+              }
+            }
+          },
+          "storageProfile": {
+            "storageaccounts": [
+              {
+                "name": "[concat(parameters('clusterStorageAccountName'),'.blob.core.windows.net')]",
+                "isDefault": true,
+                "container": "[parameters('clusterContainer')]",
+                // "key": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('clusterStorageAccountName')), variables('defaultApiVersion')).key1]"
+                "key": "[parameters('clusterStorageAccountKey')]"
+              },
+              {
+                "name": "[concat(parameters('dataStorageAccountName'),'.blob.core.windows.net')]",
+                "isDefault": false,
+                "container": "[parameters('dataContainer')]",
+                "key": "[parameters('dataStorageAccountKey')]"
+              }
+            ]
+          },
+          "computeProfile": {
+            "roles": [
+              {
+                "name": "headnode",
+                "targetInstanceCount": "2",
+                "hardwareProfile": {
+                  "vmSize": "Large"
+                },
+                "osProfile": {
+                  "linuxOperatingSystemProfile": {
+                    "username": "[parameters('sshUserName')]",
+                    "password": "[parameters('sshPassword')]"
+                  }
+                }
+              },
+              {
+                "name": "workernode",
+                "targetInstanceCount": "[parameters('clusterWorkerNodeCount')]",
+                "hardwareProfile": {
+                  "vmSize": "Large"
+                },
+                "osProfile": {
+                  "linuxOperatingSystemProfile": {
+                    "username": "[parameters('sshUserName')]",
+                    "password": "[parameters('sshPassword')]"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "outputs": {
+      "cluster": {
+        "type": "object",
+        "value": "[reference(resourceId('Microsoft.HDInsight/clusters',parameters('clusterName')))]"
+      }
+    }
+  }

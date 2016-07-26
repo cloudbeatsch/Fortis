@@ -1,0 +1,110 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0",
+  "parameters": {
+    "accountName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the Azure Automation account to deploy to."
+      }
+    },
+    "scriptUri": {
+      "type": "string",
+      "metadata": {
+        "description": "The url of the Azure Automation script."
+      }
+    },
+    "runbookName": {
+      "type": "string",
+      "metadata": {
+        "description": "name of the runbook"
+      }
+    },
+    "scheduleName": {
+      "type": "string",
+      "metadata": {
+        "description": "name of the schedule"
+      }
+    },
+    "startTime": {
+      "type": "string",
+      "metadata": {
+        "description": "start time"
+      }
+    },
+    "_artifactsLocationSasToken": {
+      "type": "string",
+      "metadata": {
+        "description": ""
+      }
+    },
+    "_artifactsLocation": {
+      "type": "string",
+      "metadata": {
+        "description": ""
+      }
+    }
+  },
+  "variables": {
+    "runbookName": "[parameters('runbookName')]",
+    "scriptUri": "[parameters('scriptUri')]",
+    "runbookDescription": "Deploys an hdi cluster",
+    "sku": "Basic"
+  },
+  "resources": [
+    {
+      "name": "[parameters('accountName')]",
+      "type": "Microsoft.Automation/automationAccounts",
+      "apiVersion": "2015-10-31",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [ ],
+      "tags": { },
+      "properties": {
+        "sku": {
+          "name": "[variables('sku')]"
+        }
+      },
+      "resources": [
+        {
+          "name": "[variables('runbookName')]",
+          "type": "runbooks",
+          "apiVersion": "2015-10-31",
+          "location": "[resourceGroup().location]",
+          "dependsOn": [
+            "[concat('Microsoft.Automation/automationAccounts/', parameters('accountName'))]"
+          ],
+          "tags": { },
+          "properties": {
+            "runbookType": "Script",
+            "logProgress": "false",
+            "logVerbose": "false",
+            "description": "[variables('runbookDescription')]",
+            "publishContentLink": {
+              "uri": "[variables('scriptUri')]",
+              "version": "1.0.0.0"
+            }
+          }
+        },
+        {
+          "comments": "AggregationSchedule",
+          "type": "schedules",
+          "name": "[parameters('scheduleName')]",
+          "apiVersion": "2015-10-31",
+          "properties": {
+            "description": "",
+            "startTime": "[parameters('startTime')]",
+            "expiryTime": "9999-12-31T23:59:59.9999999+00:00",
+            "isEnabled": true,
+            "interval": 1,
+            "frequency": "Week"
+          },
+          "dependsOn": [
+            "[resourceId('Microsoft.Automation/automationAccounts', parameters('accountName'))]",
+            "[resourceId('Microsoft.Automation/automationAccounts/runbooks', parameters('accountName'),  variables('runbookName'))]"
+          ]
+        }
+      ]
+    }
+  ],
+  "outputs": { }
+}
