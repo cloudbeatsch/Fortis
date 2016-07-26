@@ -4,9 +4,6 @@
 Param(
 	[string] [Parameter(Mandatory=$true)] $DeploymentPostFix,
 	[string] [Parameter(Mandatory=$true)] $Location,
-	[string] [Parameter(Mandatory=$true)] $DeploymentStorageAccount,
-	[string] [Parameter(Mandatory=$true)] $ArtifactsBaseUri,
-	[string] [Parameter(Mandatory=$true)] $ArtifactsStorageAccountKey,
 	[string] [Parameter(Mandatory=$true)] $ResourceGroupName,
 	[string] [Parameter(Mandatory=$true)] $SubscriptionId,
 	[string] [Parameter(Mandatory=$true)] $TwitterConsumerKey,
@@ -90,7 +87,9 @@ function Create-StorageAccountIfNotExist {
 Write-Host "Build Orion-Services\TrendPipelineServices Solution"
 &$MsBuildPath\msbuild.exe ..\..\TrendPipelineServices.sln /p:Configuration=Release /t:Publish /p:TargetProfile=Cloud /verbosity:quiet
 
-Create-StorageAccountIfNotExist "ArmDeployment" $DeploymentStorageAccount
+$DeploymentResourceGroupName = $ResourceGroupName+"-Deployment"
+$DeploymentStorageAccount = ($ResourceGroupName + "deployment").ToLower()
+Create-StorageAccountIfNotExist $DeploymentResourceGroupName $DeploymentStorageAccount
 
 $FortisRG = Get-AzureRmResourceGroup $ResourceGroupName -ErrorAction SilentlyContinue
 
@@ -166,11 +165,17 @@ if ($DeploySites -eq $true) {
 
 # from here on, we set up the hdi cluster for scheduling
 $HdiResourceGroupName = $ResourceGroupName+"-Hdi"
-$ClusterBaseName = $ResourceGroupName+"Spark"
-$AutomationAccountName = "FortisAutomationAccount"
-
 $FortisHdiRG = Get-AzureRmResourceGroup $HdiResourceGroupName -ErrorAction SilentlyContinue
 if ($FortisHdiRG -eq $null) {
+	
+	$ClusterBaseName = $ResourceGroupName+"Spark"
+    $AutomationAccountName = "FortisAutomationAccount"
+
+	$ArtifactsContainerName = "artifacts"
+	$ArtifactsBaseUri = "https://$DeploymentStorageAccount.blob.core.windows.net/$ArtifactsContainerName"
+	$DeploymentStorageAccountContext = (Get-AzureRmStorageAccount | Where-Object{$_.StorageAccountName -eq $DeploymentStorageAccount}).Context
+    New-AzureStorageContainer -Name $ArtifactsContainerName -Context $DeploymentStorageAccountContext -Permission Container -ErrorAction SilentlyContinue *>&1
+	$DeploymentStorageAccountKey = (Get-AzureRmStorageAccountKey -ResourceGroupName $DeploymentResourceGroupName -AccountName $DeploymentStorageAccount).Value[0]
 
 	# define the start time for the scheduler
 	$startDate = Get-Date -format yyyy-MM-dd
@@ -180,7 +185,7 @@ if ($FortisHdiRG -eq $null) {
 		-Location $Location `
 		-DeploymentStorageAccount $DeploymentStorageAccount `
 		-ArtifactsBaseUri $ArtifactsBaseUri `
-		-ArtifactsStorageAccountKey $ArtifactsStorageAccountKey `
+		-ArtifactsStorageAccountKey $DeploymentStorageAccountKey `
 		-HdiResourceGroupName $HdiResourceGroupName `
 		-SubscriptionId $SubscriptionId `
 		-ClusterStorageAccountName $ClusterStorageAccountName `
