@@ -1,0 +1,21 @@
+{
+  "name": "azure-storage-tools",
+  "version": "0.0.1",
+  "description": "A collection of utilities and helpers designed to make working with Azure storage more productive",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "azure",
+    "storage",
+    "table",
+    "blob",
+    "queue"
+  ],
+  "author": "tobybrad@microsoft.com",
+  "license": "MIT",
+  "dependencies": {
+    "tape": "^4.6.0"
+  }
+}
