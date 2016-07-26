@@ -11,8 +11,8 @@ related tweets within Indonesia and Sri Lanka. We then aggregated the data acros
 as part of a research board.
 
 ## Configure and deploy the pipeline
-First step is to configure the keywords and groups. Simply updated the files into the respective folder ( [.\Data\refdata\keywords](..\Data\refdata\keywords) or [.\Data\refdata\groups](.\Data\refdata\groups)) by creating a directory for each language using the iso639-2 two letter language code (e.g. ar = arabic):
-English keywords would be placed in  [.\Data\refdata\keywords\en](..\Data\refdata\keywords\en) and French keywords in  [.\Data\refdata\keywords\fr](..\Data\refdata\keywords\fr)
+First step is to configure the keywords and groups. Simply updated the files into the respective folder ( [Data\refdata\keywords](Data\refdata\keywords) or [Data\refdata\groups](Data\refdata\groups)) by creating a directory for each language using the iso639-2 two letter language code (e.g. ar = arabic):
+English keywords would be placed in  [Data\refdata\keywords\en](Data\refdata\keywords\en) and French keywords in  [Data\refdata\keywords\fr](Data\refdata\keywords\fr)
 The same applies for the definition of groups.
 
 1. The keyword configuration is a .csv of the form: ``[keyword(english), keyword(other), ...]`` where other language is identified by the parent directory
@@ -22,7 +22,7 @@ Once you configured the keywords and groups, you should obtain the Twitter token
 As the final preperation, you need to obtain the bounding box for the geo-filtering of tweets:
 e.g. here the rough bounding box for Indonesia and Sri Lanka ``"19.938716 , 8.948158, 32.938335,25.129859"``
 
-Finally, navigate to  [.\Deployment\Scripts](.\Deployment\Scripts) and open your PowerShell in elevated mode and execute  ``Deploy-FortisServices`` : 
+Finally, navigate to  [Deployment\Scripts](Deployment\Scripts) and open your PowerShell in elevated mode and execute  ``Deploy-FortisServices`` : 
 
 ```
 .\Deploy-FortisServices `
@@ -40,7 +40,7 @@ Finally, navigate to  [.\Deployment\Scripts](.\Deployment\Scripts) and open your
     -DeploySites $true
 ```
 The above script creates all required Azure resources and deployes all services. An overview of the architecture is here:
-![fortis tred pipeline](./images/FortisTrendPipeline.jpg "Fortis trend pipeline")
+![fortis tred pipeline](images/FortisTrendPipeline.jpg "Fortis trend pipeline")
 
 
 
