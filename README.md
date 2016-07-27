@@ -40,7 +40,7 @@ Finally, navigate to  [Deployment\Scripts](tree/master/Deployment\Scripts) and o
     -DeploySites $true
 ```
 The above script creates all required Azure resources and deployes all services. An overview of the architecture is here:
-![fortis tred pipeline](tree/master/images/FortisTrendPipeline.jpg "Fortis trend pipeline")
+![fortis tred pipeline](images/FortisTrendPipeline.jpg "Fortis trend pipeline")
 
 
 
