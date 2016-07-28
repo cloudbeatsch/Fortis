@@ -240,7 +240,8 @@ function main() {
               filterSpec.track = keywords.join(",");
             }
 
-            filterSpec.language = "in";
+            var languageFilter = nconf.get("LANGUAGE_FILTER")
+            filterSpec.language = languageFilter;
 
             console.log("== Filter Spec ==");
             console.log(filterSpec);

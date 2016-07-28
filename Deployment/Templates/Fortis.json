@@ -99,6 +99,9 @@
     "boundingBox": {
       "type": "string"
     },
+    "languageFilter": {
+      "type": "string"
+    },  
     "_artifactsLocationSasToken": {
       "type": "string",
       "metadata": {
@@ -260,7 +263,8 @@
             "SENTENCE_EVENTHUB_NAME": "[parameters('eventHubName2')]",
             "SENTENCE_EVENTHUB_CONNECTION_STRING": "[listkeys(variables('sendAuthRuleResourceId2'), variables('ehVersion')).primaryConnectionString]",
             "USER_TABLE": "users",
-            "BOUNDING_BOX": "[parameters('boundingBox')]"
+            "BOUNDING_BOX": "[parameters('boundingBox')]",
+            "LANGUAGE_FILTER": "[parameters('languageFilter')]"
           }
         }
       ]

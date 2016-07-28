@@ -11,6 +11,7 @@ Param(
 	[string] [Parameter(Mandatory=$true)] $TwitterAccessTokenKey,
 	[string] [Parameter(Mandatory=$true)] $TwitterAccessTokenSecret,
 	[string] [Parameter(Mandatory=$true)] $BoundingBox, 
+	[string] [Parameter(Mandatory=$true)] $LanguageFilter,
 	[string] [Parameter(Mandatory=$true)] $SparkFilter, 
 	[string] [Parameter(Mandatory=$true)] $HdiPassword,
 	[Boolean] [Parameter(Mandatory = $true)] $DeploySites,  
@@ -98,6 +99,7 @@ if ($FortisRG -eq $null) {
 	$OptionalParameters = New-Object -TypeName Hashtable
 	$OptionalParameters.Add("deploymentPostFix", $DeploymentPostFix)
 	$OptionalParameters.Add("boundingBox", $BoundingBox)
+	$OptionalParameters.Add("languageFilter", $LanguageFilter)
 	$OptionalParameters.Add("twitterConsumerKey", $TwitterConsumerKey)
 	$OptionalParameters.Add("twitterConsumerSecret", $TwitterConsumerSecret)
 	$OptionalParameters.Add("twitterAccessTokenKey", $TwitterAccessTokenKey)
