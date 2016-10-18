@@ -539,9 +539,7 @@
                       "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
                     }
                   ],
-                  "pathPattern": "{date}/{time}",
-                  "dateFormat": "yyyy/MM/dd",
-                  "timeFormat": "HH",
+                  "pathPattern": "rawinput",
                   "container": "keywords",
                   "blobPathPrefix": ""
                 }
@@ -616,9 +614,7 @@
                       "accountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('dataStorageAccountName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]"
                     }
                   ],
-                  "pathPattern": "{date}/{time}",
-                  "dateFormat": "yyyy/MM/dd",
-                  "timeFormat": "HH",
+                  "pathPattern": "rawinput",
                   "container": "groups",
                   "blobPathPrefix": ""
                 }

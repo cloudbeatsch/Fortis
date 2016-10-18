@@ -36,7 +36,7 @@ Finally, navigate to  [Deployment/Scripts](./Deployment/Scripts) and open your P
     -TwitterAccessTokenSecret <YOUR_TOKEN>  `
     -BoundingBox <YOUR_BOUNDING_BOX> `
     -LanguageFilter "YOUR_LANGUAGE_FILTER" ` # a comma seperated list of twitter language ids e.g. en,in 
-    -SparkFilter "*/*/*/*/*.json" `
+    -SparkFilter "*/*.json" `
     -HdiPassword <YOUR_STRONG_HDI_CLUSTER_PASSWORD>  `
     -DeploySites $true
 ```
